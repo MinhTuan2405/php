@@ -48,4 +48,4 @@ RUN php artisan storage:link || true
 EXPOSE 8080
 
 # Start web server
-CMD ["sh", "-c", "PORT=${PORT:-8080} && exec php -S 0.0.0.0:$PORT -t public public/index.php"]
+CMD ["sh", "-c", "PORT=${PORT:-8080} && exec php -S 0.0.0.0:$PORT server.php"]
