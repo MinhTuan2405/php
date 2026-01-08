@@ -13,13 +13,14 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# 3. Fix Apache MPM - Xóa các MPM không cần thiết
-# Chỉ giữ lại mpm_prefork, xóa mpm_event và mpm_worker
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.* \
-    && rm -f /etc/apache2/mods-enabled/mpm_worker.* \
-    && rm -f /etc/apache2/mods-available/mpm_event.load \
-    && rm -f /etc/apache2/mods-available/mpm_worker.load \
-    && a2enmod mpm_prefork 2>/dev/null || true
+# 3. Fix Apache MPM - XÓA TRIỆT ĐỂ
+# Xóa tất cả MPM modules (enabled và available)
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.conf \
+    && rm -f /etc/apache2/mods-enabled/mpm_*.load \
+    && rm -f /etc/apache2/mods-available/mpm_event.* \
+    && rm -f /etc/apache2/mods-available/mpm_worker.* \
+    && ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load \
+    && ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 
 # 4. Cấu hình Apache
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
