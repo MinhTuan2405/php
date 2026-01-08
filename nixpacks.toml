@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["php", "php82Packages.composer"]
+
+[phases.build]
+cmds = ["composer install --optimize-autoloader --no-dev"]
+
+[start]
+cmd = "sh -c 'php artisan migrate --force && php artisan config:cache && php artisan route:cache && apache2-foreground'"

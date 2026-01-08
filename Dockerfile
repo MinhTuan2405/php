@@ -34,11 +34,14 @@ COPY . .
 # Ghi chú: giữ --ignore-platform-reqs để tránh lỗi platform trong môi trường khác nhau
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
-# 9. Phân quyền
+# 9. Tạo storage link
+RUN php artisan storage:link || true
+
+# 10. Phân quyền
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 10. Expose Port
+# 11. Expose Port (Railway tự động map port)
 EXPOSE 80
 
-# 11. Chạy server
-CMD ["sh", "-c", "php artisan config:cache && php artisan route:cache && apache2-foreground"]
+# 12. Chạy server với migration
+CMD ["sh", "-c", "php artisan migrate --force && php artisan config:cache && php artisan route:cache && apache2-foreground"]
