@@ -1,4 +1,4 @@
-# 1. Sử dụng PHP-FPM (Tốt hơn Apache, không lỗi MPM)
+# 1. Sử dụng PHP-FPM + Nginx (Production ready, không lỗi MPM)
 FROM php:8.3-fpm
 
 # 2. Cài đặt Nginx và các thư viện cần thiết
