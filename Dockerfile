@@ -34,13 +34,21 @@ COPY . .
 # Ghi chú: giữ --ignore-platform-reqs để tránh lỗi platform trong môi trường khác nhau
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
-# 9. Tạo storage link
+# 9. Tạo thư mục logs và set permission
+RUN mkdir -p /var/www/html/storage/logs \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/bootstrap/cache
+
+# 10. Phân quyền đầy đủ cho storage và bootstrap
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# 11. Tạo storage link
 RUN php artisan storage:link || true
 
-# 10. Phân quyền
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
-# 11. Expose Port (Railway tự động map port)
+# 12. Expose Port (Railway tự động map port)
 EXPOSE 80
 
 # 12. Chạy server với migration
