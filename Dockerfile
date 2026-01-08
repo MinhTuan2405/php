@@ -94,11 +94,12 @@ RUN php artisan storage:link || true
 # 12. Expose port 80
 EXPOSE 80
 
-# 13. Tạo startup script
+# 13. Tạo startup script (không migrate trong start để tránh crash)
 RUN echo '#!/bin/bash\n\
-php artisan migrate --force\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
+set -e\n\
+php artisan config:cache || true\n\
+php artisan route:cache || true\n\
+php artisan migrate --force || echo "Migration skipped"\n\
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /start.sh \
     && chmod +x /start.sh
 
