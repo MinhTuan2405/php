@@ -13,10 +13,13 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# 3. Fix Apache MPM (Multi-Processing Module)
-# Disable tất cả MPM modules và chỉ giữ mpm_prefork
-RUN a2dismod mpm_event mpm_worker mpm_prefork 2>/dev/null || true \
-    && a2enmod mpm_prefork
+# 3. Fix Apache MPM - Xóa các MPM không cần thiết
+# Chỉ giữ lại mpm_prefork, xóa mpm_event và mpm_worker
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* \
+    && rm -f /etc/apache2/mods-enabled/mpm_worker.* \
+    && rm -f /etc/apache2/mods-available/mpm_event.load \
+    && rm -f /etc/apache2/mods-available/mpm_worker.load \
+    && a2enmod mpm_prefork 2>/dev/null || true
 
 # 4. Cấu hình Apache
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
@@ -56,15 +59,5 @@ RUN php artisan storage:link || true
 # 13. Expose Port (Railway tự động map port)
 EXPOSE 80
 
-# 14. Tạo startup script để fix MPM và chạy migrations
-RUN echo '#!/bin/bash\n\
-a2dismod mpm_event mpm_worker 2>/dev/null || true\n\
-a2enmod mpm_prefork 2>/dev/null || true\n\
-php artisan migrate --force\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-apache2-foreground' > /usr/local/bin/start.sh \
-    && chmod +x /usr/local/bin/start.sh
-
-# 15. Sử dụng startup script
-CMD ["/usr/local/bin/start.sh"]
+# 14. Startup command
+CMD ["sh", "-c", "php artisan migrate --force && php artisan config:cache && php artisan route:cache && exec apache2-foreground"]
