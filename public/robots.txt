@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin
+Disallow: /nova
+Disallow: /login
+Disallow: /register
+Allow: /

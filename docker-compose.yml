@@ -1,0 +1,46 @@
+
+services:
+  app:
+    build: .
+    image: php_final_app
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    volumes:
+      - ./:/var/www/html
+      - vendor:/var/www/html/vendor
+      - ./storage:/var/www/html/storage
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravelpassword
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+volumes:
+  dbdata:
+  vendor:
