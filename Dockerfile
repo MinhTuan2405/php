@@ -1,9 +1,7 @@
-# 1. Sử dụng PHP-FPM + Nginx (Production ready, không lỗi MPM)
-FROM php:8.3-fpm
+FROM php:8.4-cli
 
-# 2. Cài đặt Nginx và các thư viện cần thiết
+# Cài thư viện hệ thống + PHP extension
 RUN apt-get update && apt-get install -y \
-    nginx \
     git \
     curl \
     libpng-dev \
@@ -12,99 +10,43 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
-    supervisor \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && docker-php-ext-install \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip
 
-# 3. Cấu hình Nginx
-RUN rm -rf /etc/nginx/sites-enabled/* /etc/nginx/sites-available/*
-COPY <<EOF /etc/nginx/sites-available/laravel
-server {
-    listen 80;
-    server_name _;
-    root /var/www/html/public;
-    index index.php index.html;
-
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass 127.0.0.1:9000;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-}
-EOF
-
-RUN ln -s /etc/nginx/sites-available/laravel /etc/nginx/sites-enabled/laravel
-
-# 4. Cấu hình Supervisor (quản lý PHP-FPM + Nginx)
-COPY <<EOF /etc/supervisor/conf.d/supervisord.conf
-[supervisord]
-nodaemon=true
-user=root
-
-[program:php-fpm]
-command=/usr/local/sbin/php-fpm
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:nginx]
-command=/usr/sbin/nginx -g 'daemon off;'
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
-
-# 5. Cài đặt Composer
+# Cài Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 6. Thiết lập thư mục làm việc
-WORKDIR /var/www/html
+# Set thư mục làm việc
+WORKDIR /var/www
 
-# 7. Copy toàn bộ source code
+# Copy source code
 COPY . .
 
-# 8. Cài dependency PHP
+# Cài dependency PHP
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
 
-# 9. Tạo thư mục cần thiết
-RUN mkdir -p storage/logs \
+# Tạo thư mục cần thiết cho Laravel
+RUN mkdir -p \
+    storage/logs \
     storage/framework/cache \
     storage/framework/sessions \
     storage/framework/views \
     bootstrap/cache
 
-# 10. Phân quyền cho Laravel (www-data cho PHP-FPM và Nginx)
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 storage bootstrap/cache
+# Set quyền
+RUN chmod -R 775 storage bootstrap/cache
 
-# 11. Tạo storage link
+# Tạo storage link
 RUN php artisan storage:link || true
 
-# 12. Expose port
-EXPOSE 80
+# Railway dùng biến PORT
+EXPOSE 8080
 
-# 13. Tạo startup script
-RUN echo '#!/bin/bash\n\
-php artisan migrate --force\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /start.sh \
-    && chmod +x /start.sh
-
-# 14. Chạy supervisor để quản lý PHP-FPM + Nginx
-CMD ["/start.sh"]
+# Start app
+CMD ["sh", "-c", "php artisan migrate --force && exec php -S 0.0.0.0:$PORT -t public"]
