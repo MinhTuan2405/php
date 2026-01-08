@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
+    ca-certificates \
+    gnupg \
     && docker-php-ext-install \
         pdo_mysql \
         mbstring \
@@ -20,6 +22,10 @@ RUN apt-get update && apt-get install -y \
         zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Cài NodeJS 20 cho Vite
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
 # Cài Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -29,8 +35,11 @@ WORKDIR /var/www
 # Copy source code
 COPY . .
 
-# Cài dependency
+# Cài PHP dependency
 RUN composer install --no-interaction --optimize-autoloader --ignore-platform-reqs
+
+# Build frontend
+RUN npm install && npm run build
 
 # Tạo thư mục cần thiết cho Laravel
 RUN mkdir -p \
@@ -48,4 +57,4 @@ RUN php artisan storage:link || true
 EXPOSE 8080
 
 # Start web server
-CMD ["sh", "-c", "PORT=${PORT:-8080} && exec php -S 0.0.0.0:$PORT -t public public/index.php"]
+CMD ["sh", "-c", "PORT=${PORT:-8080} && exec php -S 0.0.0.0:$PORT -t public server.php"]
